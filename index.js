@@ -1,0 +1,1 @@
+let userController = new UserController("form-user-create", "table-users") // Objeto instanciando a classe, dizendo aonde ele vai adicionar as novas linhas
