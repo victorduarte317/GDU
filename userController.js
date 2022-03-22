@@ -1,12 +1,106 @@
 class UserController {
 
-    constructor (formId, tableId){
+    constructor (formIdCreate, formIdUpdate, tableId){
 
-        this.formEl = document.getElementById(formId); 
+        // Chamando os métodos
+        this.formEl = document.getElementById(formIdCreate);
+        this.formUpdateEl = document.getElementById(formIdUpdate); 
         this.tableEl = document.getElementById(tableId);
 
         this.onSubmit();
+        this.onEdit();
 
+    }
+
+    onEdit() { // Ao clicar no botão de cancel dentro do formulario de edit
+
+        // busca no documento a classe btn-cancel dentro de box-update e faz o eventlistener com arrowfunction
+        document.querySelector("#box-update .btn-cancel").addEventListener("click", e=>{
+
+            this.showPanelCreate(); 
+
+        });
+
+        this.formUpdateEl.addEventListener("submit", event =>{ // event listener pro formulario de atualizacao
+            
+            event.preventDefault(); // previne o tratamento de dados padrao
+
+            let btn = this.formUpdateEl.querySelector("[type=submit]");  // seleciona o botao tipado submit desse formulario
+            
+            btn.disabled = true; // desabilita ele pra nao ter flood
+
+            let values = this.getValues(this.formUpdateEl); // pega todos os valores / atribui o objeto do formulario de update tratado pela funçao get values à variavel values
+
+            let index = this.formUpdateEl.dataset.trIndex; // atribui o valor do index de linhas dentro de dataset do objeto formupdateEl à variável index
+            
+            let tr = this.tableEl.rows[index]; // atribui esse index de cima as rows do objeto da tabela à variável tr
+
+            let userOld = JSON.parse(tr.dataset.user);
+
+            let objectMerge = Object.assign({}, userOld, values); // Elementos que estão a direita sobrescrevem os que estao a esquerda
+                                                                // values sobrescreve userOld, userOld sobrescreve o elemento vazio
+
+            this.getPhoto(this.formUpdateEl).then(
+
+                (content)=> { 
+                    // Aqui ele vai receber o content, que na verdade é o resultado do resolve.
+                    // Quando der certo, a função vai ser executada.
+                    if (!values.photo) {
+
+                        objectMerge._photo = userOld._photo; // Se o campo de atribuiçao de foto estiver vazio, entao o resultado dele precisa ser o conteudo que tava la antes, a foto antiga
+                    
+                    } else {
+
+                        objectMerge._photo = content;
+
+                    }
+
+                    tr.dataset.user = JSON.stringify(objectMerge); // atribui values tratado pelo método stringify à variável tr e seus campos dataset e user
+                                      // JSON stringify transforma objeto JSON em string    
+                    tr.innerHTML = `
+                    <td><img src="${objectMerge._photo}" alt="User Image" class="img-circle img-sm"></td>
+                    <td>${objectMerge._name}</td>
+                    <td>${objectMerge._email}</td>
+                    <td>${(objectMerge._admin) ? 'Sim' : 'Não'}</td>
+                    <td>${Utils.dateFormat(objectMerge._register)}</td>
+                    <td>
+                        <button type="button" class="btn btn-primary btn-edit btn-xs btn-flat">Editar</button>
+                        <button type="button" class="btn btn-danger btn-xs btn-flat">Excluir</button>
+                    </td>
+                `;
+
+                    this.addEventsTr(tr); // adiciona a linha nova
+
+                    this.updateCount(); // atualiza os contadores
+
+                    this.formUpdateEl.reset(); // reseta os valores do formulario de update
+
+                    btn.disabled = false;
+
+                    this.showPanelCreate(); // mostra o formulario de criaçao de usuario de novo
+                }, 
+                
+                function(e){ 
+                    // Como o "this" não está sendo usado aqui, vou manter a function mesmo
+                    // Quando der errado, essa função vai ser executada
+                    // Ela recebe o evento "e" do reject
+
+                    console.error(e);
+        
+                }
+            )
+        });
+    }
+
+    showPanelCreate() {
+
+        document.querySelector("#box-update").style.display='none';
+        document.querySelector("#box-create").style.display='block';
+    }
+
+    showPanelUpdate() {
+        document.querySelector("#box-update").style.display='block';
+        document.querySelector("#box-create").style.display='none';
     }
 
     onSubmit(){ // Método que vai ser executado no evento submit
@@ -19,13 +113,13 @@ class UserController {
 
             btn.disabled = true; 
 
-            let values = this.getValues(); // a variável local values vai receber o getValues
+            let values = this.getValues(this.formEl); // a variável local values vai receber o getValues
 
             if (!values) return false; 
             // como values agora é booleano por conta da checagem feita antes do retorno de new Users, não é possivel atribuir "content" em value.photo, já que value agora é booleano.
             // então, essa verificação diz que, se values for falso, já retorna falso e para a execução do formulário.
 
-            this.getPhoto().then(
+            this.getPhoto(this.formEl).then(
 
                 (content)=> { 
                     // Aqui ele vai receber o content, que na verdade é o resultado do resolve.
@@ -59,13 +153,15 @@ class UserController {
 
     }
 
-    getPhoto() {
+    // esse formulario tava amarrado ao create, ja que ele recebe o this.formEl.elements
+    // pra desamarrar, ele precisa receber formEl como parametro e nao usar mais o "this" dentro do spread  
+    getPhoto(formEl) {
         //return new Promise (function(resolve, reject)) dava erro já que o escopo do "this.formEl" passava a ser local, só da função. Então, pra resolver, é só usar a arrow function, o this vai voltar a existir no contexto.
         return new Promise((resolve, reject)=>{  // Retorna uma promise (classe) por meio de uma arrow function que recebe dois parâmetros. Se der certo, executa o resolve. Se der errado, o reject.
 
             let fileReader = new FileReader(); // No uso do comando, o construtor já é chamado
 
-            let elements = [...this.formEl.elements].filter(item=>{ 
+            let elements = [...formEl.elements].filter(item=>{ 
             // Como eu quero só elemento do campo da foto, usa-se o método filter pra filtrar o array, ele recebe cada item e checa se é uma foto.
             // elements vai receber o array já filtrado
 
@@ -105,7 +201,7 @@ class UserController {
         
     }
 
-    getValues(){ // Método pra pegar os valores inseridos
+    getValues(formEl){ // Método pra pegar os valores inseridos
 
         let user = {}; // Cria um array local
         let isValid = true; // VAlor padrão da verificação da validade do formulário
@@ -115,7 +211,7 @@ class UserController {
         // Porém, mesmo transformado em array, ainda precisaria especificar qual index deve ser percorrido, colocando o this.formEl.elements[1], this.formEl.elements[2] etc...
         // Então, o operador spread foi utilizado, com o [...this], fazendo com que não seja precisa essa especificação.
 
-        [...this.formEl.elements].forEach(function(field, index) { // Percorre cada campo e cada posição (index) do formulário
+        [...formEl.elements].forEach(function(field, index) { // Percorre cada campo e cada posição (index) do formulário
         
         if(['name', 'email', 'password'].indexOf(field.name) > -1 && !field.value) { // se o index dos campos obrigatórios for >-1 e o valor do campo não for vazio
 
@@ -164,10 +260,38 @@ class UserController {
 
     }
 
-    
+    // Em andamento, aula 55. G27
+    selectAll() {
+        let users = [];
+        
+        if (sessionStorage.getItem("users")) {
+
+            users = JSON.parse(sessionStorage.getItem("users"));
+        }
+    }
+
+    insert(data) {
+
+        if (sessionStorage.getItem("users")) {
+
+            users = JSON.parse(sessionStorage.getItem("users"));
+
+        }
+
+        let users = []; // cria um array vazio
+
+        users.push(data); // adiciona os dados no final do array
+
+        sessionStorage.setItem("users", JSON.stringify(users)); // grava dados na sessão, se fechar o navegador eles param de existir. Na esquerda a chave que vai receber o valor inserido na direita dela.
+
+
+    }
+
     addLine(dataUser) { // Método pra adicionar uma linha na página
 
         let tr = document.createElement('tr');
+
+        this.insert(dataUser); // inserir no local storage / dataUser = data do usuario, nome email senha etc
 
         tr.dataset.user = JSON.stringify(dataUser); 
         // O método stringify do JSON tá serializando - ou seja, transformando o objeto em texto sem que ele perca suas propriedades - o dataUser, já que o dataset, por padrão, converte tudo pra string e essa conversão faz o objeto perder as propriedades.
@@ -179,21 +303,76 @@ class UserController {
             <td>${(dataUser.admin) ? 'Sim' : 'Não'}</td>
             <td>${Utils.dateFormat(dataUser.register)}</td>
             <td>
-                <button type="button" class="btn btn-primary btn-xs btn-flat">Editar</button>
-                <button type="button" class="btn btn-danger btn-xs btn-flat">Excluir</button>
+                <button type="button" class="btn btn-primary btn-edit btn-xs btn-flat">Editar</button>
+                <button type="button" class="btn btn-danger btn-delete btn-xs btn-flat">Excluir</button>
             </td>
     `;
+
+        this.addEventsTr(tr);
+        this.tableEl.appendChild(tr);  
+        this.updateCount(); // Aqui, o updateCount vai analisar a atualizaçao da ficha criada e atualizar no contador
         
-        // if ternário na linha 144: Se for admin, então escreve "sim" e se não for, escreve "não".
+        // if ternário: Se for admin, então escreve "sim" e se não for, escreve "não".
         // if ternário é usado quando existem poucas validações, de preferência duas.
         // innerHTML vai interpretar os comandos dentro da template string e executá-los, adicionando efetivamente uma nova tabela no HTML.
         // Utils.dateFormat(dataUser.register) tá passando uma classe.métodoestático e o dataUser.register tá sendo passado como parâmetro e sendo tratado dentro da classe Utils.
-        this.tableEl.appendChild(tr);  
+        
         //appendChild vai fazer com que tudo que esteja sendo interpretado dentro de innerHTML seja filho da tag "tr", adicionando várias linhas na pagina.
-
-        this.updateCount();
-
+    
     } 
+
+    addEventsTr(tr) {
+
+        tr.querySelector(".btn-delete").addEventListener("click", e=>{ // event listener no click do botao que tem a classe btn-delete
+
+            if (confirm("Deseja realmente excluir? "))  { // confirm cria uma janela que retorna true se clicar em ok e false se clicar em cancelar
+                
+                tr.remove(); // metodo nativo, remove tr
+                this.updateCount(); // atualiza o contador
+            }
+
+        });
+
+        tr.querySelector(".btn-edit").addEventListener("click", e=>{
+
+            let json = JSON.parse(tr.dataset.user); // JSON ta transformando tr.dataset.user em objeto
+    
+            this.formUpdateEl.dataset.trIndex = tr.sectionRowIndex;
+            
+            for (let name in json) { // for in em que a variavel name percorre a variavel json
+
+                let field = this.formUpdateEl.querySelector("[name=" + name.replace("_", "") + "]"); // field recebe a pesquisa dentro de "form", essa pesquisa retorna o texto [name = variavel name substituindo _ por nada]
+
+                if (field) { // se field existe
+
+                    switch (field.type) {
+                        case 'file':
+                        continue;
+                        break;
+                        
+                        case 'radio':     
+                            field = this.formUpdateEl.querySelector("[name=" + name.replace("_", "") + "][value=" + json[name] + "]");
+                            field.checked = true;
+                        break;
+
+                        case 'checkbox':
+                            field.checked = json[name];
+                        break;
+
+                        default:
+                            field.value = json[name]; // atribui a variavel name de json ao valor da variavel nomes
+                    }      // valor do objeto
+
+                }
+                
+            }
+
+            this.formUpdateEl.querySelector(".photo").src=json._photo; // vai procurar o elemento que tem a classe photo, substituir o src dele pelo json._photo (photo ainda tem _)
+
+            this.showPanelUpdate();
+        
+        });
+    }
 
     updateCount() { // Método pra trackear a contagem de atualizações no número de administradores/usuarios
         let numUsers = 0;
