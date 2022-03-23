@@ -1,3 +1,5 @@
+// manipulaçao de dados
+
 class User {
 
     constructor (name, gender, birth, country, email, password, photo, admin){ 
@@ -104,11 +106,15 @@ class User {
 
     getNewID() {
 
-        if(!window.id) window.id = 0; // se o campo nao tiver um ID ainda, ele é criado valendo 0;
+        let usersID = parseInt(localStorage.getItem("usersID"));
 
-        id++;
+        if(!usersID > 0) usersID = 0; // se o ID do usuario nao for maior que 0, ele recebe 0
 
-        return id;
+        usersID++; // agora ele vale 1
+
+        localStorage.setItem("usersID", usersID); // fica salvo no localStorage
+
+        return usersID; // é retornado
 
     }
 
@@ -139,5 +145,23 @@ class User {
         }
 
         localStorage.setItem("users", JSON.stringify(users));
+    }
+
+    remove() {
+
+        let users = User.getUsersStorage(); // pega todo o array de dados
+
+        users.forEach((userData, index)=>{ // forEach recebe dois parametros, os dados que estao sendo passados e a posiçao deles
+
+            if (this._id == userData._id) { // checa se o id encontrado é o id que ta sendo procurado
+
+                users.splice(index, 1); // splice metodo nativo do js vai receber como parametro qual index que vai ser removido e a quantidade de itens, nesse caso, vai excluir 1 item do index "index"
+
+            }
+
+        });
+
+        localStorage.setItem("users", JSON.stringify(users));
+
     }
 }

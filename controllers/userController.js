@@ -1,3 +1,5 @@
+// controlador, contem regras do que pode e do que nao pode acontecer
+
 class UserController {
 
     constructor (formIdCreate, formIdUpdate, tableId){
@@ -257,20 +259,9 @@ class UserController {
 
     }
 
-    getUsersStorage() {
-
-        let users = [];
-        
-        if (localStorage.getItem("users")) {
-
-            users = JSON.parse(localStorage.getItem("users")); // pega o item "users" de localstorage, trata os dados com o JSON e atribui na variavel
-        }
-        return users; // retorna variavel tratada
-    }
-
     selectAll() {
         
-        let users = this.getUsersStorage(); // chama o metodo getUsersStorage
+        let users = User.getUsersStorage(); // chama o metodo getUsersStorage
 
         users.forEach(dataUser=>{ // Pra cada usuario, passa as informaçoes dele
 
@@ -330,7 +321,14 @@ class UserController {
 
             if (confirm("Deseja realmente excluir? "))  { // confirm cria uma janela que retorna true se clicar em ok e false se clicar em cancelar
                 
+                let user = new User();
+
+                user.loadFromJSON(JSON.parse(tr.dataset.user)); // pegar o JSON que ta guardado dentro da tag <tr> - com dataset - e colocar no objeto user
+
+                user.remove();
+
                 tr.remove(); // metodo nativo, remove tr
+
                 this.updateCount(); // atualiza o contador
             }
 
