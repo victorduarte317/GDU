@@ -12,7 +12,7 @@ class UserController {
 
     }
 
-    onEdit() { // Ao clicar no botão de cancel dentro do formulario de edit
+    onEdit() { // Ao clicar no botão "cancel" dentro de edit
 
         // busca no documento a classe btn-cancel dentro de box-update e faz o eventlistener com arrowfunction
         document.querySelector("#box-update .btn-cancel").addEventListener("click", e=>{
@@ -25,11 +25,11 @@ class UserController {
             
             event.preventDefault(); // previne o tratamento de dados padrao
 
-            let btn = this.formUpdateEl.querySelector("[type=submit]");  // seleciona o botao tipado submit desse formulario
+            let btn = this.formUpdateEl.querySelector("[type=submit]");  // atribuindo o valor do botao do documento na variavel btn
             
             btn.disabled = true; // desabilita ele pra nao ter flood
 
-            let values = this.getValues(this.formUpdateEl); // pega todos os valores / atribui o objeto do formulario de update tratado pela funçao get values à variavel values
+            let values = this.getValues(this.formUpdateEl); // pega todos os valores / retorna o resultado da função getValues tratando o formulario de update 
 
             let index = this.formUpdateEl.dataset.trIndex; // atribui o valor do index de linhas dentro de dataset do objeto formupdateEl à variável index
             
