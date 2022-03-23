@@ -60,6 +60,8 @@ class UserController {
 
                     user.loadFromJSON(objectMerge);
 
+                    user.saveUser();
+
                     this.getTr(user, tr); // chama o método getTr e passa user como primeiro parametro e sobrescreve o tr = null com o tr desse contexto
 
                     this.addEventsTr(tr); // adiciona a linha nova
@@ -120,7 +122,7 @@ class UserController {
 
                     values.photo = content;
 
-                    this.insert(values); // inserir no local storage / values = dataUser(nesse contexto) = data do usuario, nome email senha etc
+                    values.saveUser();
 
                     this.addLine(values);
 
@@ -266,7 +268,6 @@ class UserController {
         return users; // retorna variavel tratada
     }
 
-    // Em andamento, aula 55. G27
     selectAll() {
         
         let users = this.getUsersStorage(); // chama o metodo getUsersStorage
@@ -280,18 +281,6 @@ class UserController {
             this.addLine(user); // adiciona as linhas passando a variavel user ja renderizada do JSON
 
         });
-
-    }
-
-    insert(data) {
-
-        let users = this.getUsersStorage(); // cria um array vazio
-
-        users.push(data); // adiciona os dados no final do array
-
-        // sessionStorage.setItem("users", JSON.stringify(users)); sessionstorage
-        localStorage.setItem("users", JSON.stringify(users)); // grava dados na sessão, se fechar o navegador eles param de existir. Na esquerda a chave que vai receber o valor inserido na direita dela.
-
 
     }
 
