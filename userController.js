@@ -1,3 +1,5 @@
+// controlador, contem regras do que pode e do que nao pode acontecer
+
 class UserController {
 
     constructor (formIdCreate, formIdUpdate, tableId){
@@ -9,10 +11,11 @@ class UserController {
 
         this.onSubmit();
         this.onEdit();
+        this.selectAll();
 
     }
 
-    onEdit() { // Ao clicar no botão "cancel" dentro de edit
+    onEdit() { // Ao clicar no botão de cancel dentro do formulario de edit
 
         // busca no documento a classe btn-cancel dentro de box-update e faz o eventlistener com arrowfunction
         document.querySelector("#box-update .btn-cancel").addEventListener("click", e=>{
@@ -21,24 +24,24 @@ class UserController {
 
         });
 
-        this.formUpdateEl.addEventListener("submit", event =>{ // event listener pro evento de envio do formulario de atualizacao
+        this.formUpdateEl.addEventListener("submit", event =>{ // event listener pro formulario de atualizacao
             
             event.preventDefault(); // previne o tratamento de dados padrao
 
-            let btn = this.formUpdateEl.querySelector("[type=submit]");  // atribuindo o valor do botao do documento na variavel btn
+            let btn = this.formUpdateEl.querySelector("[type=submit]");  // seleciona o botao tipado submit desse formulario
             
             btn.disabled = true; // desabilita ele pra nao ter flood
 
-            let values = this.getValues(this.formUpdateEl); // pega todos os valores / retorna o resultado da função getValues tratando o formulario de update 
+            let values = this.getValues(this.formUpdateEl); // pega todos os valores / atribui o objeto do formulario de update tratado pela funçao get values à variavel values
 
             let index = this.formUpdateEl.dataset.trIndex; // atribui o valor do index de linhas dentro de dataset do objeto formupdateEl à variável index
             
             let tr = this.tableEl.rows[index]; // atribui esse index de cima as rows do objeto da tabela à variável tr
 
-            let userOld = JSON.parse(tr.dataset.user); // adiciona os dados tabelados do usuario - depois de tratados pelo JSON - à variável userOld
+            let userOld = JSON.parse(tr.dataset.user);
 
             let objectMerge = Object.assign({}, userOld, values); // Elementos que estão a direita sobrescrevem os que estao a esquerda
-                                                                 // values sobrescreve userOld, userOld sobrescreve o elemento vazio
+                                                                // values sobrescreve userOld, userOld sobrescreve o elemento vazio
 
             this.getPhoto(this.formUpdateEl).then(
 
@@ -55,19 +58,13 @@ class UserController {
 
                     }
 
-                    tr.dataset.user = JSON.stringify(objectMerge); // atribui values tratado pelo método stringify à variável tr e seus campos dataset e user
-                                      // JSON stringify transforma objeto JSON em string    
-                    tr.innerHTML = `
-                    <td><img src="${objectMerge._photo}" alt="User Image" class="img-circle img-sm"></td>
-                    <td>${objectMerge._name}</td>
-                    <td>${objectMerge._email}</td>
-                    <td>${(objectMerge._admin) ? 'Sim' : 'Não'}</td>
-                    <td>${Utils.dateFormat(objectMerge._register)}</td>
-                    <td>
-                        <button type="button" class="btn btn-primary btn-edit btn-xs btn-flat">Editar</button>
-                        <button type="button" class="btn btn-danger btn-xs btn-flat">Excluir</button>
-                    </td>
-                `;
+                    let user = new User();
+
+                    user.loadFromJSON(objectMerge);
+
+                    user.saveUser();
+
+                    this.getTr(user, tr); // chama o método getTr e passa user como primeiro parametro e sobrescreve o tr = null com o tr desse contexto
 
                     this.addEventsTr(tr); // adiciona a linha nova
 
@@ -126,6 +123,8 @@ class UserController {
                     // Quando der certo, a função vai ser executada.
 
                     values.photo = content;
+
+                    values.saveUser();
 
                     this.addLine(values);
 
@@ -260,40 +259,43 @@ class UserController {
 
     }
 
-    // Em andamento, aula 55. G27
     selectAll() {
-        let users = [];
         
-        if (sessionStorage.getItem("users")) {
+        let users = User.getUsersStorage(); // chama o metodo getUsersStorage
 
-            users = JSON.parse(sessionStorage.getItem("users"));
-        }
-    }
+        users.forEach(dataUser=>{ // Pra cada usuario, passa as informaçoes dele
 
-    insert(data) {
+            let user = new User(); // instancia User na variavel local user
 
-        if (sessionStorage.getItem("users")) {
+            user.loadFromJSON(dataUser); // carrega os dados do usuario a partir de um JSON
 
-            users = JSON.parse(sessionStorage.getItem("users"));
+            this.addLine(user); // adiciona as linhas passando a variavel user ja renderizada do JSON
 
-        }
-
-        let users = []; // cria um array vazio
-
-        users.push(data); // adiciona os dados no final do array
-
-        sessionStorage.setItem("users", JSON.stringify(users)); // grava dados na sessão, se fechar o navegador eles param de existir. Na esquerda a chave que vai receber o valor inserido na direita dela.
-
+        });
 
     }
 
     addLine(dataUser) { // Método pra adicionar uma linha na página
 
-        let tr = document.createElement('tr');
+        let tr = this.getTr(dataUser); 
+        this.tableEl.appendChild(tr);  // vai na tag table, até a ultima tabela, e adiciona esse tr - função do appendChild
+        this.updateCount(); // Aqui, o updateCount vai analisar a atualizaçao da ficha criada e atualizar no contador
+        
+        // if ternário: Se for admin, então escreve "sim" e se não for, escreve "não".
+        // if ternário é usado quando existem poucas validações, de preferência duas.
+        // innerHTML vai interpretar os comandos dentro da template string e executá-los, adicionando efetivamente uma nova tabela no HTML.
+        // Utils.dateFormat(dataUser.register) tá passando uma classe.métodoestático e o dataUser.register tá sendo passado como parâmetro e sendo tratado dentro da classe Utils.
+        
+        //appendChild vai fazer com que tudo que esteja sendo interpretado dentro de innerHTML seja filho da tag "tr", adicionando várias linhas na pagina.
+    
+    } 
 
-        this.insert(dataUser); // inserir no local storage / dataUser = data do usuario, nome email senha etc
+    getTr(dataUser, tr = null) { // como precisamos ter acesso aos dados do usuario dentro desse metodo, ele precisa passar tais dados como parametro
+                                 // existem partes do código que pegam um tr ja existente, então ele precisa ser passado aqui como null pra essas partes do codigo continuarem funcionando
+        
+        if (tr === null) tr = document.createElement('tr'); // se tr for nulo, cria um novo
 
-        tr.dataset.user = JSON.stringify(dataUser); 
+        tr.dataset.user = JSON.stringify(dataUser);  
         // O método stringify do JSON tá serializando - ou seja, transformando o objeto em texto sem que ele perca suas propriedades - o dataUser, já que o dataset, por padrão, converte tudo pra string e essa conversão faz o objeto perder as propriedades.
         
         tr.innerHTML = `
@@ -307,19 +309,11 @@ class UserController {
                 <button type="button" class="btn btn-danger btn-delete btn-xs btn-flat">Excluir</button>
             </td>
     `;
-
         this.addEventsTr(tr);
-        this.tableEl.appendChild(tr);  
-        this.updateCount(); // Aqui, o updateCount vai analisar a atualizaçao da ficha criada e atualizar no contador
-        
-        // if ternário: Se for admin, então escreve "sim" e se não for, escreve "não".
-        // if ternário é usado quando existem poucas validações, de preferência duas.
-        // innerHTML vai interpretar os comandos dentro da template string e executá-los, adicionando efetivamente uma nova tabela no HTML.
-        // Utils.dateFormat(dataUser.register) tá passando uma classe.métodoestático e o dataUser.register tá sendo passado como parâmetro e sendo tratado dentro da classe Utils.
-        
-        //appendChild vai fazer com que tudo que esteja sendo interpretado dentro de innerHTML seja filho da tag "tr", adicionando várias linhas na pagina.
-    
-    } 
+
+        return tr;
+
+    }
 
     addEventsTr(tr) {
 
@@ -327,7 +321,14 @@ class UserController {
 
             if (confirm("Deseja realmente excluir? "))  { // confirm cria uma janela que retorna true se clicar em ok e false se clicar em cancelar
                 
+                let user = new User();
+
+                user.loadFromJSON(JSON.parse(tr.dataset.user)); // pegar o JSON que ta guardado dentro da tag <tr> - com dataset - e colocar no objeto user
+
+                user.remove();
+
                 tr.remove(); // metodo nativo, remove tr
+
                 this.updateCount(); // atualiza o contador
             }
 
