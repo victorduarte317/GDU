@@ -21,7 +21,7 @@ class UserController {
 
         });
 
-        this.formUpdateEl.addEventListener("submit", event =>{ // event listener pro formulario de atualizacao
+        this.formUpdateEl.addEventListener("submit", event =>{ // event listener pro evento de envio do formulario de atualizacao
             
             event.preventDefault(); // previne o tratamento de dados padrao
 
@@ -35,10 +35,10 @@ class UserController {
             
             let tr = this.tableEl.rows[index]; // atribui esse index de cima as rows do objeto da tabela à variável tr
 
-            let userOld = JSON.parse(tr.dataset.user);
+            let userOld = JSON.parse(tr.dataset.user); // adiciona os dados tabelados do usuario - depois de tratados pelo JSON - à variável userOld
 
             let objectMerge = Object.assign({}, userOld, values); // Elementos que estão a direita sobrescrevem os que estao a esquerda
-                                                                // values sobrescreve userOld, userOld sobrescreve o elemento vazio
+                                                                 // values sobrescreve userOld, userOld sobrescreve o elemento vazio
 
             this.getPhoto(this.formUpdateEl).then(
 
